@@ -2,22 +2,64 @@
 /*
 Plugin Name: HM Taxonomy Filter
 Version: 0.1
-Description: 
-Plugin URI:
-Author: HATSUMATSU
+Description: Filter posts by multiple custom taxonomies and terms.
+Plugin URI: http://hatsumatsu.de/
+Author: HATSUMATSU, Martin Wecke
 Author URI: http://hatsumatsu.de/
 */
 
-/* ### CONFIG ### */
+/**
+ * I11n
+ */
 
 load_plugin_textdomain( 'hm-taxonomyfilter', '/wp-content/plugins/hm-taxonomyfilter/' );
 
 
-/* ### MODIFY QUERY ### */
+/**
+ * Register a custom query var 
+ */
+
+function hm_taxonomyfilter_custom_query_vars( $query_vars ) {
+  
+  $query_vars[] = 'hm-taxonomyfilter';
+  return $query_vars;
+
+}
+
+add_filter( 'query_vars', 'hm_taxonomyfilter_custom_query_vars' );
+
+
+/**
+ * Register custom rewrite rules to translate the /filter/{filter-string} URL structure 
+ * to our custom query var  
+ */
+
+function hm_taxonomyfilter_custom_rewrite_rules() {
+
+  // filter
+  add_rewrite_rule(
+    'filter/([^/]+)/?$',
+    'index.php?&hm-taxonomyfilter=$matches[1]',
+    'top'
+    );
+
+  // filter + paged
+  add_rewrite_rule(
+    'filter/([^/]+)/page/([0-9]+)/?$',
+    'index.php?&hm-taxonomyfilter=$matches[1]&paged=$matches[2]',
+    'top'
+    );
+
+}
+
+add_action( 'init', 'hm_taxonomyfilter_custom_rewrite_rules' );
+
+
+/**
+ * Translate our custom query var to the tax_query of Wordpress core 
+ */
 
 function hm_taxonomyfilter_modify_query( $query ) {
-
-  // print_r( $query->query_vars );
 
   if( isset( $query->query_vars[ 'hm-taxonomyfilter' ] ) ) {
     
@@ -48,52 +90,15 @@ function hm_taxonomyfilter_modify_query( $query ) {
 }
 
 if( !is_admin() ) { 
-
   add_filter( 'pre_get_posts', 'hm_taxonomyfilter_modify_query' );
-
 }
 
 
-/* ### CUSTOM REWRITE RULES ### */
-
-/* register rules */
-
-function hm_taxonomyfilter_custom_rewrite_rules() {
-
-  // filter
-  add_rewrite_rule(
-    'filter/([^/]+)/?$',
-    'index.php?&hm-taxonomyfilter=$matches[1]',
-    'top'
-    );
-
-  // filter + paged
-  add_rewrite_rule(
-    'filter/([^/]+)/page/([0-9]+)/?$',
-    'index.php?&hm-taxonomyfilter=$matches[1]&paged=$matches[2]',
-    'top'
-    );
-
-}
-
-add_action( 'init', 'hm_taxonomyfilter_custom_rewrite_rules' );
-
-
-/* register query vars */
-
-function hm_taxonomyfilter_custom_query_vars( $query_vars ) {
-  
-  $query_vars[] = 'hm-taxonomyfilter';
-
-  return $query_vars;
-
-}
-
-add_filter( 'query_vars', 'hm_taxonomyfilter_custom_query_vars' );
-
-
-
-/* ### TAXONOMY MENU ### */
+/**
+ * Gets the value of our custom query var and returns it as associative array
+ *
+ * @return array
+ */
 
 function hm_taxonomyfilter_get_filter() {
 
@@ -114,6 +119,18 @@ function hm_taxonomyfilter_get_filter() {
     return $filter;
 
 }
+
+
+/**
+ * Modifies the filter array created by hm_taxonomyfilter_get_filter()
+ *
+ * @param array   $filter     filter array
+ * @param string  $mode       'add' or 'remove'
+ * @param string  $taxonomy   taxonomy 'name' (slug)
+ * @param string  $term       term slug 
+ *
+ * @return array
+ */
 
 function hm_taxonomyfilter_modify_filter( $filter, $mode, $taxonomy, $term ) {
 
@@ -141,6 +158,15 @@ function hm_taxonomyfilter_modify_filter( $filter, $mode, $taxonomy, $term ) {
 
 }
 
+
+/**
+ * Translates the filter array to a string used as filter slug
+ *
+ * @param array   $filter     filter array
+ *
+ * @return string   'filter/{taxonomy-a}:{term-a1}+{term-a2},{taxonomy-b}:{term-b3}'
+ */
+
 function hm_taxonomyfilter_get_filter_link( $filter ) {
 
   $link = '';
@@ -159,14 +185,13 @@ function hm_taxonomyfilter_get_filter_link( $filter ) {
 
 }
 
-function hm_taxonomyfilter_term_link( $mode, $tax, $term ) {
 
-  $str = '';
-
-  return $str;
-
-}
-
+/**
+ * Template tag:
+ * Renders an hierachical list of taxonomies and their term links.
+ * Clicking on a terms adds it to the current filter.
+ * Clicking on terms already included in the filter removes them from the current filter.
+ */
 
 function hm_taxonomyfilter_navigation() {
 
@@ -182,8 +207,6 @@ function hm_taxonomyfilter_navigation() {
   if( $taxonomies ) {
 
     $filter = hm_taxonomyfilter_get_filter();
-
-    // print_r( $filter );
 
     echo '<ul>';
 
@@ -236,11 +259,17 @@ function hm_taxonomyfilter_navigation() {
 
     echo '</ul>';
 
-    // print_r( $taxonomies );
-
   }
 
 }
+
+
+/**
+ * Template tag:
+ * Renders an hierachical list of the taxonomies 
+ * and their term currently used by the filter.
+ * Clicking on a term removes it from the current filter.
+ */
 
 function hm_taxonomyfilter_status() {
 
@@ -287,16 +316,28 @@ function hm_taxonomyfilter_status() {
 
 }
 
-/* ### HELPER FUNCTIONS ### */
 
-/* filter array recursive */
-/* http://stackoverflow.com/questions/17923356/how-to-remove-empty-associative-array-entries */
+/**
+ * Helper functions
+ */
+
+/**
+ * filter an array recursively
+ * http://stackoverflow.com/questions/17923356/how-to-remove-empty-associative-array-entries
+ */
 
 function array_filter_recursive( $array ) {
  
   return array_filter( $array, function( $value ){return array_filter( $value ) != array(); } );
 
 }
+
+
+/**
+ * Get the current archive page's permalink without any filter
+ *
+ * @return  $url  http//example.com/archive/
+ */
 
 function hm_taxonomyfilter_get_base_url() {
 
