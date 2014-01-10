@@ -18,5 +18,5 @@ Clicking on a term adds it to the current filter, clicking on terms already used
 
 `<?php hm_taxonomyfilter_status(); ?>` shows only the currently used taxonomies and terms.
 
-The plugin renders only plain markup, it's up to you to style it up!
-
+**The plugin renders only plain markup, it's up to you to style it up!*
+*
