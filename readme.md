@@ -5,11 +5,11 @@ With HM Taxonomy Filter you can filter any archive pages in Wordpress by terms o
 
 ### Usage
 
-Filtering works by appending a filter slug to the archive's permalink.
+Filter posts by appending a filter slug to the archive's permalink.
 
 `http://example.com/{archive}/filter/{taxonomy-a}:{term-a1}+{term-a2},{taxonomy-b}:{term-b3}+{term-b4}`
 
-filters the *archive* page by term **A1** and **A2** from taxonomy **A** and term **B3** and **B4** from taxonomy **B**.
+filters *archive* by terms **A1** and **A2** from taxonomy **A** and terms **B3** and **B4** from taxonomy **B**.
 
 ### Template tags
 
